@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Supabase Local Development
+  supabase:
+    image: supabase/postgres:15.1.0.147
+    container_name: carfax-supabase
+    ports:
+      - "54322:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - carfax-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carfax-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - SUPABASE_URL=http://supabase:5432
+      - SUPABASE_ANON_KEY=your_anon_key
+      - SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+      - JWT_SECRET=your_jwt_secret
+      - STRIPE_SECRET_KEY=sk_test_your_stripe_key
+      - PORT=3000
+    depends_on:
+      - supabase
+    networks:
+      - carfax-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: carfax-frontend
+    ports:
+      - "4200:4200"
+    environment:
+      - VITE_SUPABASE_URL=http://localhost:54321
+      - VITE_SUPABASE_ANON_KEY=your_anon_key
+      - VITE_API_URL=http://localhost:3000/api/v1
+    depends_on:
+      - backend
+    networks:
+      - carfax-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # PDF Worker
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: carfax-worker
+    environment:
+      - SUPABASE_URL=http://supabase:5432
+      - SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+      - PDF_STORAGE_BUCKET=reports-pdfs
+    depends_on:
+      - supabase
+    networks:
+      - carfax-network
+    volumes:
+      - ./worker:/app
+      - /app/node_modules
+
+volumes:
+  supabase_data:
+
+networks:
+  carfax-network:
+    driver: bridge

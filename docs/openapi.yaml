@@ -1,0 +1,781 @@
+openapi: 3.0.3
+info:
+  title: CarFax Web API
+  description: API для веб-сервиса отчётов по VIN
+  version: 1.0.0
+  contact:
+    name: CarFax Web Team
+    email: support@carfax-web.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Локальная разработка
+  - url: https://api.carfax-web.com/api/v1
+    description: Продакшн сервер
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Аутентификация
+      summary: Регистрация пользователя
+      description: Создание нового аккаунта пользователя
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: "user@example.com"
+              password: "password123"
+              fullName: "Иван Иванов"
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '409':
+          description: Пользователь уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Аутентификация
+      summary: Вход пользователя
+      description: Аутентификация пользователя
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Аутентификация
+      summary: Выход пользователя
+      description: Завершение сессии пользователя
+      responses:
+        '200':
+          description: Успешный выход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Аутентификация
+      summary: Обновление токена
+      description: Получение нового access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: Refresh token
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: Токен успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Недействительный refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Аутентификация
+      summary: Получение информации о текущем пользователе
+      description: Возвращает данные текущего аутентифицированного пользователя
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+
+  /reports/request:
+    post:
+      tags:
+        - Отчёты
+      summary: Запрос отчёта по VIN
+      description: Создание запроса на генерацию отчёта по VIN номеру
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReportRequest'
+            example:
+              vin: "1HGBH41JXMN109186"
+      responses:
+        '201':
+          description: Запрос отчёта создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestReportResponse'
+
+  /reports/{id}:
+    get:
+      tags:
+        - Отчёты
+      summary: Получение информации об отчёте
+      description: Возвращает детальную информацию об отчёте
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID отчёта
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация об отчёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          description: Отчёт не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/{id}/download:
+    get:
+      tags:
+        - Отчёты
+      summary: Скачивание отчёта
+      description: Получение ссылки для скачивания PDF отчёта
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID отчёта
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: URL для скачивания
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  downloadUrl:
+                    type: string
+                    format: uri
+                    description: Ссылка для скачивания PDF
+        '404':
+          description: PDF файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports:
+    get:
+      tags:
+        - Отчёты
+      summary: Получение списка отчётов пользователя
+      description: Возвращает все отчёты текущего пользователя
+      responses:
+        '200':
+          description: Список отчётов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+
+  /payments/create:
+    post:
+      tags:
+        - Платежи
+      summary: Создание платежа
+      description: Создание платежа для single отчёта или bulk пакета
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            example:
+              reportId: "123e4567-e89b-12d3-a456-426614174000"
+              paymentType: "single"
+      responses:
+        '201':
+          description: Платеж создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentResponse'
+
+  /payments/webhook:
+    post:
+      tags:
+        - Платежи
+      summary: Webhook для обработки платежей Stripe
+      description: Обработка событий от Stripe
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe webhook payload
+      responses:
+        '200':
+          description: Webhook обработан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+  /payments:
+    get:
+      tags:
+        - Платежи
+      summary: Получение истории платежей пользователя
+      description: Возвращает все платежи текущего пользователя
+      responses:
+        '200':
+          description: История платежей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+
+  /users/profile:
+    get:
+      tags:
+        - Пользователи
+      summary: Получение профиля пользователя
+      description: Возвращает профиль текущего пользователя
+      responses:
+        '200':
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+
+    put:
+      tags:
+        - Пользователи
+      summary: Обновление профиля пользователя
+      description: Обновление данных профиля пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Профиль успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/credits:
+    get:
+      tags:
+        - Пользователи
+      summary: Получение информации о credits пользователя
+      description: Возвращает информацию о credits текущего пользователя
+      responses:
+        '200':
+          description: Информация о credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCredits'
+
+  /admin/dashboard:
+    get:
+      tags:
+        - Администрирование
+      summary: Получение статистики дашборда
+      description: Возвращает общую статистику системы
+      responses:
+        '200':
+          description: Статистика дашборда
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+
+  /admin/users:
+    get:
+      tags:
+        - Администрирование
+      summary: Получение списка всех пользователей
+      description: Возвращает список всех пользователей с их credits
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUser'
+
+  /admin/reports:
+    get:
+      tags:
+        - Администрирование
+      summary: Получение списка всех отчётов
+      description: Возвращает список всех отчётов в системе
+      responses:
+        '200':
+          description: Список отчётов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminReport'
+
+  /admin/users/{userId}/credits:
+    put:
+      tags:
+        - Администрирование
+      summary: Обновление credits пользователя
+      description: Установка количества credits для пользователя
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCreditsRequest'
+      responses:
+        '200':
+          description: Credits успешно обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - fullName
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+        password:
+          type: string
+          minLength: 6
+          maxLength: 50
+          description: Пароль пользователя
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Полное имя пользователя
+
+    RegisterResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        message:
+          type: string
+          description: Сообщение о результате
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+        password:
+          type: string
+          minLength: 6
+          description: Пароль пользователя
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        session:
+          $ref: '#/components/schemas/Session'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID пользователя
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+        fullName:
+          type: string
+          description: Полное имя пользователя
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата создания аккаунта
+
+    Session:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: Refresh token
+
+    UserProfileResponse:
+      type: object
+      properties:
+        user:
+          allOf:
+            - $ref: '#/components/schemas/User'
+            - type: object
+              properties:
+                credits:
+                  $ref: '#/components/schemas/UserCredits'
+
+    UserCredits:
+      type: object
+      properties:
+        credits_total:
+          type: integer
+          description: Общее количество купленных credits
+        credits_remaining:
+          type: integer
+          description: Оставшееся количество credits
+
+    RequestReportRequest:
+      type: object
+      required:
+        - vin
+      properties:
+        vin:
+          type: string
+          pattern: '^[A-HJ-NPR-Z0-9]{17}$'
+          description: VIN номер автомобиля (17 символов)
+
+    RequestReportResponse:
+      type: object
+      properties:
+        reportId:
+          type: string
+          format: uuid
+          description: ID созданного отчёта
+        status:
+          type: string
+          enum: [available, payment_required, generating]
+          description: Статус отчёта
+        downloadUrl:
+          type: string
+          format: uri
+          description: Ссылка для скачивания (если доступно)
+        price:
+          type: number
+          format: float
+          description: Цена отчёта (если требуется оплата)
+        message:
+          type: string
+          description: Сообщение о статусе
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vin:
+          type: string
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, generating, completed, error]
+        price:
+          type: number
+          format: float
+        pdf_file_name:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
+
+    CreatePaymentRequest:
+      type: object
+      required:
+        - paymentType
+      properties:
+        reportId:
+          type: string
+          format: uuid
+          description: ID отчёта (только для single платежа)
+        paymentType:
+          type: string
+          enum: [single, bulk]
+          description: Тип платежа
+
+    CreatePaymentResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+          description: Stripe client secret
+        paymentId:
+          type: string
+          format: uuid
+          description: ID платежа в системе
+        amount:
+          type: number
+          format: float
+          description: Сумма платежа
+        currency:
+          type: string
+          description: Валюта платежа
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        report_id:
+          type: string
+          format: uuid
+        payment_type:
+          type: string
+          enum: [single, bulk]
+        amount:
+          type: number
+          format: float
+        stripe_payment_intent_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed, cancelled]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Полное имя пользователя
+
+    UpdateCreditsRequest:
+      type: object
+      required:
+        - credits
+      properties:
+        credits:
+          type: integer
+          minimum: 0
+          description: Количество credits для установки
+
+    DashboardStats:
+      type: object
+      properties:
+        totalReports:
+          type: integer
+          description: Общее количество отчётов
+        totalUsers:
+          type: integer
+          description: Общее количество пользователей
+        totalPayments:
+          type: integer
+          description: Общее количество платежей
+        totalRevenue:
+          type: number
+          format: float
+          description: Общая выручка
+        recentReports:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminReport'
+        recentUsers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+
+    AdminUser:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        credits_total:
+          type: integer
+        credits_remaining:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        profiles:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            full_name:
+              type: string
+
+    AdminReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vin:
+          type: string
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, generating, completed, error]
+        price:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        profiles:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            full_name:
+              type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате операции
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP статус код
+        message:
+          type: string
+          description: Сообщение об ошибке
+        error:
+          type: string
+          description: Тип ошибки

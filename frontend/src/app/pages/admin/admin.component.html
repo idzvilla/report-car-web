@@ -1,0 +1,175 @@
+<div class="min-h-screen bg-gray-50 py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Админ панель</h1>
+      <p class="mt-2 text-gray-600">Управление пользователями и отчётами</p>
+    </div>
+
+    <!-- Статистика -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                <span class="text-white text-sm font-medium">📊</span>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Всего отчётов</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats?.totalReports || 0 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                <span class="text-white text-sm font-medium">👥</span>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Пользователи</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats?.totalUsers || 0 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                <span class="text-white text-sm font-medium">💳</span>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Платежи</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats?.totalPayments || 0 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                <span class="text-white text-sm font-medium">💰</span>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Выручка</dt>
+                <dd class="text-lg font-medium text-gray-900">${{ stats?.totalRevenue || 0 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Управление пользователями -->
+    <div class="bg-white shadow rounded-lg mb-8">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+          Управление пользователями
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Credits
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Действия
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let user of users">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ user.email }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ user.credits_remaining || 0 }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button
+                    (click)="updateUserCredits(user)"
+                    class="text-indigo-600 hover:text-indigo-900"
+                  >
+                    Изменить credits
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Последние отчёты -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+          Последние отчёты
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  VIN
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Пользователь
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Статус
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Дата
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let report of reports">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                  {{ report.vin }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ report.user_email }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                        [class]="getStatusClass(report.status)">
+                    {{ getStatusText(report.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ report.created_at | date:'short' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
