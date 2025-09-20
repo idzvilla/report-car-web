@@ -30,7 +30,7 @@ export interface CreatePaymentResponse {
   providedIn: 'root'
 })
 export class PaymentsService {
-  private apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/v1';
+  private apiUrl = 'http://localhost:3000/api';
 
   constructor(private http: HttpClient) { }
 

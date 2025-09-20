@@ -26,7 +26,6 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  fullName: string;
 }
 
 export interface AuthResponse {
@@ -38,7 +37,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/v1';
+  private apiUrl = 'http://localhost:3000/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -105,17 +104,18 @@ export class AuthService {
     this.setUser(user);
   }
 
-  private setUser(user: User): void {
-    this.currentUserSubject.next(user);
-    localStorage.setItem('current_user', JSON.stringify(user));
-  }
-
-  private clearUser(): void {
+  clearUser(): void {
     this.currentUserSubject.next(null);
     localStorage.removeItem('current_user');
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   }
+
+  private setUser(user: User): void {
+    this.currentUserSubject.next(user);
+    localStorage.setItem('current_user', JSON.stringify(user));
+  }
+
 
   private loadUserFromStorage(): void {
     const userStr = localStorage.getItem('current_user');

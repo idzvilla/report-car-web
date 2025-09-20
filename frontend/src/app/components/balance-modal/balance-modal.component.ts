@@ -1,16 +1,18 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { PaymentsService } from '../../services/payments.service';
+import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
-  selector: 'app-paywall-modal',
+  selector: 'app-balance-modal',
   template: `
     <div *ngIf="isVisible" class="modal-overlay">
       <div class="modal max-w-2xl">
         <div class="card-header">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-2xl font-bold text-gray-900">Выберите план</h3>
-              <p class="text-sm text-gray-500 mt-1 mb-0">VIN: {{ vin }}</p>
+              <h3 class="text-2xl font-bold text-gray-900">Пополнить баланс</h3>
+              <p class="text-sm text-gray-500 mt-1 mb-0">Выберите количество отчётов для покупки</p>
             </div>
             <button (click)="onClose()" class="text-gray-400 hover:text-gray-600 transition-colors">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +103,6 @@ import { PaymentsService } from '../../services/payments.service';
             </div>
           </div>
 
-          
           <!-- Payment Button -->
           <div class="mt-6">
             <button 
@@ -132,10 +133,8 @@ import { PaymentsService } from '../../services/payments.service';
   `,
   styles: []
 })
-export class PaywallModalComponent {
+export class BalanceModalComponent {
   @Input() isVisible = false;
-  @Input() vin = '';
-  @Input() reportId = '';
   @Output() close = new EventEmitter<void>();
   @Output() paymentSuccess = new EventEmitter<{ credits: number, plan: string }>();
   
@@ -144,7 +143,9 @@ export class PaywallModalComponent {
   error = '';
 
   constructor(
-    private paymentsService: PaymentsService
+    private paymentsService: PaymentsService,
+    private authService: AuthService,
+    private toastService: ToastService
   ) {}
 
   onClose(): void {
@@ -201,12 +202,11 @@ export class PaywallModalComponent {
   processPayment(): void {
     if (!this.selectedPlan) return;
 
-    // Пользователь уже авторизован (проверка происходит раньше)
     this.isProcessing = true;
     this.error = '';
 
     // Для тестирования просто ждем 1 секунду и переходим дальше
-    console.log('Processing payment for plan:', this.selectedPlan);
+    console.log('Processing balance top-up for plan:', this.selectedPlan);
     
     setTimeout(() => {
       this.isProcessing = false;

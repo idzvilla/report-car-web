@@ -44,7 +44,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
               </button>
             </div>
           </div>
-          <div *ngIf="vinForm.get('vin')?.invalid && vinForm.get('vin')?.touched" 
+          <div *ngIf="vinForm.get('vin')?.invalid && submitted" 
                class="mt-2 text-sm text-danger">
             <div *ngIf="vinForm.get('vin')?.errors?.['required']">
               VIN номер обязателен
@@ -82,6 +82,7 @@ export class VinInputComponent {
   vinForm: FormGroup;
   isLoading = false;
   hasValue = false;
+  submitted = false;
 
   constructor(private fb: FormBuilder) {
     this.vinForm = this.fb.group({
@@ -106,6 +107,7 @@ export class VinInputComponent {
   }
 
   onSubmit(): void {
+    this.submitted = true;
     if (this.vinForm.valid) {
       this.isLoading = true;
       const vin = this.vinForm.get('vin')?.value;
@@ -120,6 +122,7 @@ export class VinInputComponent {
   resetForm(): void {
     this.vinForm.reset();
     this.isLoading = false;
+    this.submitted = false;
   }
 
   async pasteFromClipboard(): Promise<void> {

@@ -4,17 +4,38 @@ import { Report } from '../../services/reports.service';
 @Component({
   selector: 'app-report-card',
   template: `
-    <div class="card">
+    <div class="card" [class.generating-card]="report.status === 'generating'">
       <div class="card-body">
         <div class="flex items-center justify-between h-16">
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-gray-900 font-mono tracking-wider">VIN: {{ report.vin }}</h3>
-            <p class="text-sm text-gray-500 mb-0">
+            <p class="text-sm text-gray-500 mb-0" *ngIf="report.status === 'completed'">
               Создан: {{ report.created_at | date:'dd.MM.yyyy HH:mm' }}
+            </p>
+            <p class="text-sm text-gray-500 mb-0" *ngIf="report.status === 'generating'">
+              Время ожидания до 5 минут
+            </p>
+            <p class="text-sm text-gray-500 mb-0" *ngIf="report.status === 'pending'">
+              В очереди на генерацию
+            </p>
+            <p class="text-sm text-gray-500 mb-0" *ngIf="report.status === 'error'">
+              Ошибка генерации
             </p>
           </div>
           
           <div class="flex items-center space-x-4">
+            <!-- Статус генерации с анимацией -->
+            <div *ngIf="report.status === 'generating'" class="flex items-center space-x-2">
+              <div class="loading-spinner w-5 h-5"></div>
+              <span class="text-sm text-gray-600 font-medium">Генерируется...</span>
+            </div>
+            
+            <!-- Статус в очереди -->
+            <div *ngIf="report.status === 'pending'" class="flex items-center space-x-2">
+              <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span class="text-sm text-blue-600 font-medium">В очереди</span>
+            </div>
+            
             <button 
               *ngIf="report.status === 'completed' && report.downloadUrl"
               (click)="onDownload()"

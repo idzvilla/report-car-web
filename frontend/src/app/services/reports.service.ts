@@ -31,11 +31,13 @@ export interface RequestReportResponse {
   providedIn: 'root'
 })
 export class ReportsService {
-  private apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/v1';
+  private apiUrl = 'http://localhost:3000/api/v1';
 
   constructor(private http: HttpClient) { }
 
   requestReport(vin: string): Observable<RequestReportResponse> {
+    console.log('Sending request to:', `${this.apiUrl}/reports/request`);
+    console.log('Request data:', { vin });
     return this.http.post<RequestReportResponse>(`${this.apiUrl}/reports/request`, { vin });
   }
 

@@ -8,6 +8,11 @@
   --color-primary: #008060;
   --color-primary-hover: #006b52;
   --color-primary-light: #e6f7f3;
+  
+  /* Telegram brand colors */
+  --color-telegram: #0088cc;
+  --color-telegram-hover: #006699;
+  --color-telegram-light: #e6f2ff;
   --color-secondary: #6c757d;
   --color-success: #008060;
   --color-warning: #ffc107;
@@ -174,9 +179,75 @@ p {
   font-size: var(--font-size-xs);
 }
 
+.btn-md {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  height: 32px;
+}
+
 .btn-lg {
   padding: var(--space-md) var(--space-lg);
   font-size: var(--font-size-lg);
+}
+
+.btn-telegram {
+  background-color: var(--color-telegram);
+  color: white;
+  border-color: var(--color-telegram);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-telegram:hover:not(:disabled) {
+  background-color: var(--color-telegram-hover);
+  border-color: var(--color-telegram-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+}
+
+.btn-telegram:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 136, 204, 0.2);
+}
+
+.btn-telegram svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+  .btn-telegram:hover:not(:disabled) svg {
+    transform: scale(1.1);
+  }
+
+  .btn-disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    border-color: #e5e7eb;
+    cursor: not-allowed;
+  }
+
+  .btn-disabled:hover {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    border-color: #e5e7eb;
+    transform: none;
+    box-shadow: none;
+  }
+
+/* Telegram color utilities */
+.border-telegram {
+  border-color: var(--color-telegram) !important;
+}
+
+.bg-telegram-light {
+  background-color: var(--color-telegram-light) !important;
+}
+
+.bg-telegram {
+  background-color: var(--color-telegram) !important;
+}
+
+.text-telegram {
+  color: var(--color-telegram) !important;
 }
 
 /* Form styles */
@@ -312,8 +383,11 @@ p {
 .text-danger { color: var(--color-danger); }
 
 .bg-primary { background-color: var(--color-primary); }
+.bg-primary-light { background-color: var(--color-primary-light); }
 .bg-secondary { background-color: var(--color-bg-secondary); }
 .bg-white { background-color: var(--color-bg-primary); }
+
+.border-primary { border-color: var(--color-primary) !important; }
 
 .rounded { border-radius: var(--radius-md); }
 .rounded-lg { border-radius: var(--radius-lg); }
@@ -364,5 +438,53 @@ p {
   .btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* Toast styles */
+.text-xs.text-gray-500.truncate {
+  margin-bottom: 0 !important;
+}
+
+/* Report card generating state */
+.generating-card {
+  opacity: 0.9;
+  border-color: #d1d5db !important;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 50%, #e5e7eb 100%);
+  background-size: 200% 200%;
+  animation: generatingShimmer 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.generating-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: generatingSweep 2s ease-in-out infinite;
+}
+
+@keyframes generatingShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes generatingSweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }

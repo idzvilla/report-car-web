@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-navbar',
@@ -16,36 +17,26 @@ import { AuthService, User } from '../../services/auth.service';
           
           <div class="flex items-center space-x-4">
             <ng-container *ngIf="!isAuthenticated; else authenticatedMenu">
-              <button (click)="loginWithTelegram()" class="btn btn-primary flex items-center space-x-2">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.61 7.59c-.12.56-.44.7-.9.44l-2.49-1.84-1.2 1.15c-.13.13-.24.24-.49.24l.18-2.56 4.64-4.19c.2-.18-.04-.28-.31-.1l-5.74 3.61-2.47-.77c-.54-.17-.55-.54.11-.8l9.7-3.74c.45-.17.85.1.7.8z"/>
-                </svg>
-                <span>Войти через Telegram</span>
+              <button (click)="showLogin()" class="btn btn-outline btn-md">
+                Войти
+              </button>
+              <button (click)="showRegister()" class="btn btn-primary btn-md">
+                Регистрация
               </button>
             </ng-container>
             
             <ng-template #authenticatedMenu>
               <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                  <img *ngIf="currentUser?.photoUrl" 
-                       [src]="currentUser?.photoUrl" 
-                       [alt]="currentUser?.fullName"
-                       class="w-8 h-8 rounded-full">
-                  <span class="text-sm text-gray-700">
-                    Привет, {{ currentUser?.fullName || currentUser?.email }}!
+                <button (click)="openBalanceModal()" class="btn btn-md flex items-center space-x-1 bg-gray-100 hover:bg-gray-200 px-3 rounded-lg transition-colors">
+                  <span class="text-sm text-gray-600">Баланс:</span>
+                  <span class="text-sm font-semibold text-gray-900">
+                    {{ currentUser?.credits?.credits_remaining || 0 }} {{ getReportsText(currentUser?.credits?.credits_remaining || 0) }}
                   </span>
-                  <span *ngIf="currentUser?.authProvider === 'telegram'" 
-                        class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                    Telegram
-                  </span>
-                </div>
-                <a routerLink="/profile" class="btn btn-outline btn-sm">
-                  Профиль
-                </a>
-                <a routerLink="/admin" class="btn btn-outline btn-sm">
+                </button>
+                <a routerLink="/admin" class="btn btn-outline btn-md">
                   Админ
                 </a>
-                <button (click)="logout()" class="btn btn-outline btn-sm">
+                <button (click)="logout()" class="btn btn-outline btn-md">
                   Выйти
                 </button>
               </div>
@@ -54,16 +45,50 @@ import { AuthService, User } from '../../services/auth.service';
         </div>
       </div>
     </nav>
+
+    <!-- Login Modal -->
+    <app-login-modal
+      [isVisible]="showLoginModal"
+      (close)="showLoginModal = false"
+      (loginSuccess)="onLoginSuccess()"
+      (switchToRegister)="onSwitchToRegister()"
+    ></app-login-modal>
+
+    <!-- Register Modal -->
+    <app-register-modal
+      [isVisible]="showRegisterModal"
+      (close)="showRegisterModal = false"
+      (registerSuccess)="onRegisterSuccess()"
+      (switchToLogin)="onSwitchToLogin()"
+    ></app-register-modal>
+
+    <!-- Balance Modal -->
+    <app-balance-modal
+      [isVisible]="showBalanceModal"
+      (close)="showBalanceModal = false"
+      (paymentSuccess)="onBalancePaymentSuccess($event)"
+    ></app-balance-modal>
+
+    <!-- Toast -->
+    <app-toast
+      [toasts]="toasts"
+      (remove)="onRemoveToast($event)"
+    ></app-toast>
   `,
   styles: []
 })
 export class NavbarComponent implements OnInit {
   currentUser: User | null = null;
   isAuthenticated = false;
+  showLoginModal = false;
+  showRegisterModal = false;
+  showBalanceModal = false;
+  toasts: any[] = [];
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -71,36 +96,92 @@ export class NavbarComponent implements OnInit {
       this.currentUser = user;
       this.isAuthenticated = !!user;
     });
+
+    // Подписываемся на toast'ы
+    this.toastService.toasts$.subscribe(toasts => {
+      this.toasts = toasts;
+    });
   }
 
-      loginWithTelegram(): void {
-        // Временная заглушка для тестирования
-        console.log('Telegram auth temporarily disabled for testing');
-        
-        // Создаем тестового пользователя
-        const testUser = {
-          id: 'test-user-123',
-          fullName: 'Test User',
-          authProvider: 'telegram',
-          telegramId: '123456789',
-          username: 'testuser',
-          photoUrl: 'https://via.placeholder.com/50x50/0088cc/ffffff?text=T'
-        };
-        
-        this.authService.setCurrentUser(testUser);
-        alert('✅ Вход выполнен (тестовый режим)');
-      }
+  showLogin(): void {
+    this.showLoginModal = true;
+  }
+
+  showRegister(): void {
+    this.showRegisterModal = true;
+  }
+
+  onLoginSuccess(): void {
+    this.showLoginModal = false;
+  }
+
+  onRegisterSuccess(): void {
+    this.showRegisterModal = false;
+  }
+
+  onSwitchToRegister(): void {
+    this.showLoginModal = false;
+    this.showRegisterModal = true;
+  }
+
+  onSwitchToLogin(): void {
+    this.showRegisterModal = false;
+    this.showLoginModal = true;
+  }
+
+  openBalanceModal(): void {
+    this.showBalanceModal = true;
+  }
+
+  onBalancePaymentSuccess(paymentData: { credits: number, plan: string }): void {
+    this.showBalanceModal = false;
+    
+    // Обновляем баланс пользователя после успешной оплаты
+    if (this.currentUser) {
+      const updatedUser = {
+        ...this.currentUser,
+        credits: {
+          credits_total: (this.currentUser.credits?.credits_total || 0) + paymentData.credits,
+          credits_remaining: (this.currentUser.credits?.credits_remaining || 0) + paymentData.credits
+        }
+      };
+      this.authService.setCurrentUser(updatedUser);
+      
+      // Показываем toast об успешной покупке
+      this.toastService.showSuccess(
+        'Баланс пополнен!',
+        this.getAddedReportsText(paymentData.credits)
+      );
+    }
+  }
+
+  onRemoveToast(toastId: string): void {
+    this.toastService.remove(toastId);
+  }
+
+  getReportsText(count: number): string {
+    if (count === 1) {
+      return 'отчет';
+    } else if (count >= 2 && count <= 4) {
+      return 'отчета';
+    } else {
+      return 'отчетов';
+    }
+  }
+
+  getAddedReportsText(count: number): string {
+    if (count === 1) {
+      return 'Добавлен 1 отчет';
+    } else if (count >= 2 && count <= 4) {
+      return `Добавлено ${count} отчета`;
+    } else {
+      return `Добавлено ${count} отчетов`;
+    }
+  }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      next: () => {
-        this.router.navigate(['/']);
-      },
-      error: (error) => {
-        console.error('Ошибка выхода:', error);
-        // Всё равно перенаправляем на главную
-        this.router.navigate(['/']);
-      }
-    });
+    // Просто очищаем данные пользователя и перенаправляем
+    this.authService.clearUser();
+    this.router.navigate(['/']);
   }
 }
