@@ -74,14 +74,21 @@ export class NavbarComponent implements OnInit {
   }
 
       loginWithTelegram(): void {
-        // Открываем Telegram Login Widget в новом окне
-        const botId = '7427373200';
-        const origin = 'http://localhost:4200';
-        const returnTo = 'http://localhost:3000/api/auth/telegram';
+        // Временная заглушка для тестирования
+        console.log('Telegram auth temporarily disabled for testing');
         
-        const telegramUrl = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${origin}&return_to=${returnTo}`;
-        console.log('Opening Telegram auth URL:', telegramUrl);
-        window.open(telegramUrl, 'telegram-login', 'width=400,height=500');
+        // Создаем тестового пользователя
+        const testUser = {
+          id: 'test-user-123',
+          fullName: 'Test User',
+          authProvider: 'telegram',
+          telegramId: '123456789',
+          username: 'testuser',
+          photoUrl: 'https://via.placeholder.com/50x50/0088cc/ffffff?text=T'
+        };
+        
+        this.authService.setCurrentUser(testUser);
+        alert('✅ Вход выполнен (тестовый режим)');
       }
 
   logout(): void {

@@ -31,7 +31,7 @@ export interface RequestReportResponse {
   providedIn: 'root'
 })
 export class ReportsService {
-  private apiUrl = 'http://localhost:3000/api/v1';
+  private apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/v1';
 
   constructor(private http: HttpClient) { }
 
