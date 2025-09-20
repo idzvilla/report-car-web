@@ -73,11 +73,16 @@ export class NavbarComponent implements OnInit {
     });
   }
 
-  loginWithTelegram(): void {
-    // Открываем Telegram Login Widget в новом окне
-    const telegramUrl = 'https://oauth.telegram.org/auth?bot_id=7427373200&origin=http://localhost:4200&return_to=http://localhost:3000/api/auth/telegram';
-    window.open(telegramUrl, 'telegram-login', 'width=400,height=500');
-  }
+      loginWithTelegram(): void {
+        // Открываем Telegram Login Widget в новом окне
+        const botId = '7427373200';
+        const origin = 'http://localhost:4200';
+        const returnTo = 'http://localhost:3000/api/auth/telegram';
+        
+        const telegramUrl = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${origin}&return_to=${returnTo}`;
+        console.log('Opening Telegram auth URL:', telegramUrl);
+        window.open(telegramUrl, 'telegram-login', 'width=400,height=500');
+      }
 
   logout(): void {
     this.authService.logout().subscribe({
