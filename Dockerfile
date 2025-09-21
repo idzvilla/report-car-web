@@ -1,7 +1,7 @@
-# Используем официальный Node.js образ
-FROM node:18-alpine
+# Multi-stage build для Railway deployment
+FROM node:18-alpine AS build
 
-# Устанавливаем рабочую директорию
+# Установка рабочей директории
 WORKDIR /app
 
 # Копируем package.json файлы
@@ -10,18 +10,31 @@ COPY frontend/package*.json ./frontend/
 COPY backend/package*.json ./backend/
 
 # Устанавливаем зависимости
-RUN npm install --omit=dev
-RUN cd frontend && npm install
-RUN cd backend && npm install
+RUN npm run install:deps
 
 # Копируем исходный код
 COPY . .
 
-# Собираем приложение
+# Собираем проект
 RUN npm run build
 
-# Устанавливаем порт
+# Production stage
+FROM node:18-alpine AS production
+
+# Установка рабочей директории
+WORKDIR /app
+
+# Копируем только необходимые файлы из build stage
+COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/public ./backend/public
+COPY --from=build /app/backend/package*.json ./backend/
+COPY --from=build /app/backend/node_modules ./backend/node_modules
+
+# Переходим в backend директорию
+WORKDIR /app/backend
+
+# Экспозиция порта
 EXPOSE 3000
 
-# Запускаем приложение
-CMD ["npm", "start"]
+# Запуск приложения
+CMD ["npm", "run", "start:prod"]

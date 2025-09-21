@@ -7,10 +7,12 @@
   "scripts": {
     "start": "cd backend && npm run start:prod",
     "build": "npm run install:deps && npm run build:frontend && npm run build:backend && npm run copy:frontend",
-    "install:deps": "npm install --omit=dev && cd frontend && npm install && cd ../backend && npm install",
+    "install:deps": "npm install --omit=dev && cd frontend && npm install --legacy-peer-deps && cd ../backend && npm install",
     "build:frontend": "cd frontend && npx ng build --configuration production",
     "build:backend": "cd backend && npm run build",
     "copy:frontend": "mkdir -p backend/public && cp -r frontend/dist/carfax-frontend/* backend/public/",
+    "railway:build": "npm run build",
+    "railway:start": "cd backend && npm run start:prod",
     "vercel-build": "npm run build",
     "postbuild": "echo 'Build completed successfully'"
   },

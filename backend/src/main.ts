@@ -52,12 +52,16 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const PORT = process.env.PORT || 3000;
-  await app.listen(PORT);
+  await app.listen(PORT, '0.0.0.0'); // Важно для Railway
+  
+  const isProd = process.env.NODE_ENV === 'production';
+  const baseUrl = isProd ? 'Railway App' : `http://localhost:${PORT}`;
   
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
-  console.log(`📱 API доступно по адресу: http://localhost:${PORT}/api`);
-  console.log(`📚 Swagger документация: http://localhost:${PORT}/api/docs`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📱 API доступно по адресу: ${baseUrl}/api`);
+  console.log(`📚 Swagger документация: ${baseUrl}/api/docs`);
+  console.log(`🏥 Health check: ${baseUrl}/api/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 
 bootstrap().catch(console.error);
