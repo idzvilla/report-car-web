@@ -4,7 +4,7 @@ echo "🚀 Начинаем сборку CarFax Web..."
 
 # Устанавливаем зависимости
 echo "📦 Устанавливаем зависимости..."
-npm install --only=production
+npm install --omit=dev
 cd frontend && npm install
 cd ../backend && npm install
 cd ..
