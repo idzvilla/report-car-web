@@ -6,12 +6,13 @@
   "main": "backend/src/main.js",
   "scripts": {
     "start": "cd backend && npm run start:prod",
-    "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd frontend && npm install && npx ng build --output-path=dist",
-    "build:backend": "cd backend && npm install && npm run build",
-    "vercel-build": "npm run build:frontend && npm run build:backend",
-    "install:all": "npm install --omit=dev && cd frontend && npm install --include=dev && cd ../backend && npm install --include=dev",
-    "postbuild": "cp -r frontend/dist/carfax-frontend/* backend/frontend/dist/carfax-frontend/ 2>/dev/null || true"
+    "build": "npm run install:deps && npm run build:frontend && npm run build:backend && npm run copy:frontend",
+    "install:deps": "npm install --omit=dev && cd frontend && npm install && cd ../backend && npm install",
+    "build:frontend": "cd frontend && npx ng build --configuration production",
+    "build:backend": "cd backend && npm run build",
+    "copy:frontend": "mkdir -p backend/public && cp -r frontend/dist/carfax-frontend/* backend/public/",
+    "vercel-build": "npm run build",
+    "postbuild": "echo 'Build completed successfully'"
   },
   "engines": {
     "node": ">=18.0.0",

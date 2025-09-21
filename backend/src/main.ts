@@ -26,9 +26,18 @@ async function bootstrap() {
 
   // Обслуживание статических файлов фронтенда в продакшене
   if (process.env.NODE_ENV === 'production') {
-    app.useStaticAssets(join(__dirname, '..', '..', 'frontend', 'dist', 'carfax-frontend'));
-    app.setBaseViewsDir(join(__dirname, '..', '..', 'frontend', 'dist', 'carfax-frontend'));
+    const publicPath = join(__dirname, '..', 'public');
+    app.useStaticAssets(publicPath);
+    app.setBaseViewsDir(publicPath);
     app.setViewEngine('html');
+    
+    // Обработка всех маршрутов, не начинающихся с /api
+    app.getHttpAdapter().get('*', (req: any, res: any, next: any) => {
+      if (req.url.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(join(publicPath, 'index.html'));
+    });
   }
 
   // Swagger документация
