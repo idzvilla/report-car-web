@@ -1,13 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-
-interface DashboardStats {
-  totalReports: number;
-  totalUsers: number;
-  totalPayments: number;
-  totalRevenue: number;
-  recentReports: any[];
-  recentUsers: any[];
-}
+import { ToastService } from '../../services/toast.service';
+import { AdminService, AdminStats, User, Report } from '../../services/admin.service';
 
 @Component({
   selector: 'app-admin',
@@ -15,52 +8,98 @@ interface DashboardStats {
   styleUrls: ['./admin.component.scss']
 })
 export class AdminComponent implements OnInit {
-  stats: DashboardStats | null = null;
-  users: any[] = [];
-  reports: any[] = [];
+  stats: AdminStats | null = null;
+  users: User[] = [];
+  reports: Report[] = [];
   loading = false;
+  toasts: any[] = [];
 
-  constructor() {}
+  constructor(
+    private toastService: ToastService,
+    private adminService: AdminService
+  ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
+    
+    // Subscribe to toasts
+    this.toastService.toasts$.subscribe(toasts => {
+      this.toasts = toasts;
+    });
   }
 
   loadDashboardData(): void {
     this.loading = true;
     
-    // Mock data for now
-    this.stats = {
-      totalReports: 150,
-      totalUsers: 25,
-      totalPayments: 89,
-      totalRevenue: 1250.50,
-      recentReports: [],
-      recentUsers: []
-    };
+    // Загружаем статистику
+    this.adminService.getStats().subscribe({
+      next: (stats) => {
+        this.stats = stats;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+        this.toastService.showError('Ошибка загрузки статистики', 'Не удалось загрузить данные статистики');
+        this.loading = false;
+      }
+    });
 
-    this.users = [
-      { email: 'user1@example.com', credits_remaining: 5 },
-      { email: 'user2@example.com', credits_remaining: 0 },
-      { email: 'user3@example.com', credits_remaining: 10 }
-    ];
+    // Загружаем пользователей
+    this.adminService.getUsers().subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.toastService.showError('Ошибка загрузки пользователей', 'Не удалось загрузить список пользователей');
+      }
+    });
 
-    this.reports = [
-      { vin: '1HGBH41JXMN109186', user_email: 'user1@example.com', status: 'completed', created_at: new Date() },
-      { vin: '2HGBH41JXMN109187', user_email: 'user2@example.com', status: 'pending', created_at: new Date() }
-    ];
-
-    this.loading = false;
+    // Загружаем отчеты
+    this.adminService.getReports().subscribe({
+      next: (reports) => {
+        this.reports = reports;
+      },
+      error: (error) => {
+        console.error('Error loading reports:', error);
+        this.toastService.showError('Ошибка загрузки отчетов', 'Не удалось загрузить список отчетов');
+      }
+    });
   }
 
-  updateUserCredits(user: any): void {
-    const newCredits = prompt(`Введите новое количество credits для ${user.email}:`, user.credits_remaining.toString());
+  updateUserCredits(user: User): void {
+    const currentCredits = user.credits?.credits_remaining || 0;
+    const newCredits = prompt(`Введите новое количество credits для ${user.email}:`, currentCredits.toString());
     if (newCredits !== null) {
       const credits = parseInt(newCredits, 10);
       if (!isNaN(credits) && credits >= 0) {
-        user.credits_remaining = credits;
-        // Here you would call the API to update credits
-        console.log(`Updated credits for ${user.email} to ${credits}`);
+        this.adminService.updateUserCredits(user.id, credits).subscribe({
+          next: () => {
+            // Обновляем локальные данные
+            if (!user.credits) {
+              user.credits = { credits_total: 0, credits_remaining: 0 };
+            }
+            user.credits.credits_total = credits;
+            user.credits.credits_remaining = credits;
+            
+            this.toastService.showSuccess(
+              'Credits обновлены!',
+              `Пользователю ${user.email} установлено ${credits} credits`
+            );
+          },
+          error: (error) => {
+            console.error('Error updating credits:', error);
+            this.toastService.showError(
+              'Ошибка обновления',
+              'Не удалось обновить credits пользователя'
+            );
+          }
+        });
+      } else {
+        this.toastService.showError(
+          'Ошибка ввода',
+          'Пожалуйста, введите корректное число credits (больше или равно 0)'
+        );
       }
     }
   }
@@ -89,5 +128,9 @@ export class AdminComponent implements OnInit {
       default:
         return 'Неизвестно';
     }
+  }
+
+  onRemoveToast(toastId: string): void {
+    this.toastService.remove(toastId);
   }
 }
