@@ -1,89 +1,190 @@
-import { Injectable } from '@nestjs/common';
-import { createHmac } from 'crypto';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { SupabaseService } from '../../common/supabase/supabase.service';
 
 @Injectable()
 export class AuthService {
-  private readonly telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || 'your-bot-token';
   private readonly jwtSecret = process.env.JWT_SECRET || 'your-jwt-secret';
 
-  constructor(private jwtService: JwtService) {}
-
-  // Заглушка для тестирования
-  async validateUser(email: string, password: string): Promise<any> {
-    return { id: '1', email, fullName: 'Test User' };
-  }
+  constructor(
+    private jwtService: JwtService,
+    private supabaseService: SupabaseService
+  ) {}
 
   /**
-   * Проверяет подпись данных от Telegram
+   * Регистрация нового пользователя
    */
-  async verifyTelegramAuth(query: any): Promise<boolean> {
+  async register(email: string, password: string, fullName: string) {
     try {
-      const { hash, ...data } = query;
+      console.log('Attempting to register user:', { email, fullName });
       
-      // Создаем строку для проверки подписи
-      const dataCheckString = Object.keys(data)
-        .sort()
-        .map(key => `${key}=${data[key]}`)
-        .join('\n');
+      const { data, error } = await this.supabaseService.signUp(email, password, {
+        full_name: fullName
+      });
 
-      // Создаем секретный ключ из токена бота
-      const secretKey = createHmac('sha256', 'WebAppData')
-        .update(this.telegramBotToken)
-        .digest();
+      console.log('Supabase response:', { data: data ? 'DATA_PRESENT' : 'NO_DATA', error });
 
-      // Вычисляем подпись
-      const calculatedHash = createHmac('sha256', secretKey)
-        .update(dataCheckString)
-        .digest('hex');
+      if (error) {
+        console.error('Supabase registration error:', error);
+        if (error.message.includes('already registered')) {
+          throw new ConflictException('Пользователь с таким email уже существует');
+        }
+        throw new UnauthorizedException(error.message);
+      }
 
-      return calculatedHash === hash;
+      if (!data.user) {
+        throw new UnauthorizedException('Ошибка при создании пользователя');
+      }
+
+      // Создаем запись в нашей таблице users
+      await this.createUserProfile(data.user.id, email, fullName);
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: fullName,
+          authProvider: 'email'
+        },
+        session: data.session
+      };
     } catch (error) {
-      console.error('Error verifying Telegram auth:', error);
-      return false;
+      if (error instanceof ConflictException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Ошибка при регистрации');
     }
   }
 
   /**
-   * Создает или находит пользователя по данным Telegram
+   * Вход пользователя
    */
-  async createOrFindTelegramUser(telegramData: {
-    telegramId: string;
-    firstName: string;
-    lastName?: string;
-    username?: string;
-    photoUrl?: string;
-  }): Promise<any> {
-    // В реальном приложении здесь бы была работа с базой данных
-    // Пока возвращаем заглушку
-    return {
-      id: `tg_${telegramData.telegramId}`,
-      telegramId: telegramData.telegramId,
-      firstName: telegramData.firstName,
-      lastName: telegramData.lastName,
-      username: telegramData.username,
-      photoUrl: telegramData.photoUrl,
-      email: null, // У Telegram нет email
-      fullName: `${telegramData.firstName} ${telegramData.lastName || ''}`.trim(),
-      authProvider: 'telegram'
-    };
+  async login(email: string, password: string) {
+    try {
+      const { data, error } = await this.supabaseService.signIn(email, password);
+
+      if (error) {
+        throw new UnauthorizedException('Неверный email или пароль');
+      }
+
+      if (!data.user || !data.session) {
+        throw new UnauthorizedException('Ошибка авторизации');
+      }
+
+      // Получаем профиль пользователя
+      const userProfile = await this.getUserProfile(data.user.id);
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: userProfile?.full_name || 'User',
+          authProvider: 'email',
+          credits: {
+            credits_total: userProfile?.credits_total || 0,
+            credits_remaining: userProfile?.credits_remaining || 0
+          }
+        },
+        session: data.session
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Ошибка при входе');
+    }
   }
 
   /**
-   * Генерирует JWT токен для пользователя
+   * Выход пользователя
    */
-  async generateJwtToken(user: any): Promise<string> {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      authProvider: user.authProvider,
-      telegramId: user.telegramId
-    };
+  async logout() {
+    try {
+      const { error } = await this.supabaseService.signOut();
+      if (error) {
+        throw new UnauthorizedException(error.message);
+      }
+      return { message: 'Успешный выход' };
+    } catch (error) {
+      throw new UnauthorizedException('Ошибка при выходе');
+    }
+  }
 
-    return this.jwtService.sign(payload, {
-      secret: this.jwtSecret,
-      expiresIn: '7d'
-    });
+  /**
+   * Получение пользователя по токену
+   */
+  async getUserByToken(accessToken: string) {
+    try {
+      const { data, error } = await this.supabaseService.getUser(accessToken);
+
+      if (error || !data.user) {
+        throw new UnauthorizedException('Недействительный токен');
+      }
+
+      const userProfile = await this.getUserProfile(data.user.id);
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: userProfile?.full_name || 'User',
+          authProvider: 'email',
+          credits: {
+            credits_total: userProfile?.credits_total || 0,
+            credits_remaining: userProfile?.credits_remaining || 0
+          }
+        }
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Ошибка при получении пользователя');
+    }
+  }
+
+  /**
+   * Создает профиль пользователя в нашей таблице
+   */
+  private async createUserProfile(userId: string, email: string, fullName: string) {
+    const supabaseAdmin = this.supabaseService.getAdminClient();
+    
+    const { error } = await supabaseAdmin
+      .from('users')
+      .insert({
+        id: userId,
+        email: email,
+        full_name: fullName,
+        auth_provider: 'email',
+        credits_total: 0,
+        credits_remaining: 0,
+        role: 'user'
+      });
+
+    if (error) {
+      console.error('Error creating user profile:', error);
+    } else {
+      console.log('✅ User profile created successfully for:', email);
+    }
+  }
+
+  /**
+   * Получает профиль пользователя из нашей таблицы
+   */
+  private async getUserProfile(userId: string) {
+    const supabaseAdmin = this.supabaseService.getAdminClient();
+    
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+
+    return data;
   }
 }

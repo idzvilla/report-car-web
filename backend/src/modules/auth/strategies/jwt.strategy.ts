@@ -1,11 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { SupabaseService } from '../../../common/supabase/supabase.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private supabaseService: SupabaseService) {
+  constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -14,25 +13,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    try {
-      // Проверяем токен через Supabase
-      const { data, error } = await this.supabaseService
-        .getClient()
-        .auth
-        .getUser(payload.access_token);
-
-      if (error || !data.user) {
-        throw new UnauthorizedException('Недействительный токен');
-      }
-
-      return {
-        sub: data.user.id,
-        email: data.user.email,
-        accessToken: payload.access_token,
-        user: data.user,
-      };
-    } catch (error) {
-      throw new UnauthorizedException('Ошибка валидации токена');
-    }
+    // Возвращаем payload как есть, т.к. Supabase токены проверяются в guard
+    return payload;
   }
 }
