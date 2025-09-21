@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Глобальная валидация
   app.useGlobalPipes(new ValidationPipe({
@@ -21,6 +23,13 @@ async function bootstrap() {
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:4200', 'http://localhost:3000'],
     credentials: true,
   });
+
+  // Обслуживание статических файлов фронтенда в продакшене
+  if (process.env.NODE_ENV === 'production') {
+    app.useStaticAssets(join(__dirname, '..', '..', 'frontend', 'dist', 'carfax-frontend'));
+    app.setBaseViewsDir(join(__dirname, '..', '..', 'frontend', 'dist', 'carfax-frontend'));
+    app.setViewEngine('html');
+  }
 
   // Swagger документация
   const config = new DocumentBuilder()

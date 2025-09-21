@@ -7,9 +7,10 @@
   "scripts": {
     "start": "cd backend && npm run start:prod",
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && npm run build -- --output-path=../backend/frontend/dist/carfax-frontend",
     "build:backend": "cd backend && npm run build",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "postbuild": "cp -r frontend/dist/carfax-frontend/* backend/frontend/dist/carfax-frontend/ 2>/dev/null || true"
   },
   "engines": {
     "node": ">=18.0.0",
